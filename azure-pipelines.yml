@@ -1,0 +1,54 @@
+# Simple Build-and-Test pipeline
+
+trigger:
+- main
+
+pool:
+  name: 'Azure Pipelines'
+
+variables:
+  solution: '**/*.sln'
+  buildPlatform: 'Any CPU'
+  buildConfiguration: 'Release'
+
+steps:
+- task: DotNetCoreCLI@2
+  displayName: 'Restore dependencies'
+  inputs:
+    command: restore
+    feedsToUse: select
+    projects: |
+      src/Presentation/Apsoft.Cad.Presentation.Api/Apsoft.Cad.Presentation.Api.csproj
+      test/Apsoft.Cad.Domain.Tests/Apsoft.Cad.Domain.Tests.csproj
+
+- task: DotNetCoreCLI@2
+  displayName: 'Build projects'
+  inputs:
+    command: 'build'
+    projects: |
+      src/Presentation/Apsoft.Cad.Presentation.Api/Apsoft.Cad.Presentation.Api.csproj
+      test/Apsoft.Cad.Domain.Tests/Apsoft.Cad.Domain.Tests.csproj
+
+- task: DotNetCoreCLI@2
+  displayName: 'Run unit tests'
+  inputs:
+    command: test
+    arguments: --no-build
+    publishTestResults: true
+    projects: |
+      test/Apsoft.Cad.Domain.Tests/Apsoft.Cad.Domain.Tests.csproj
+
+- task: DotNetCoreCLI@2
+  displayName: 'Publish to artifacts folder'
+  inputs:
+    command: 'publish'
+    publishWebProjects: false
+    projects: |
+      src/Presentation/Apsoft.Cad.Presentation.Api/Apsoft.Cad.Presentation.Api.csproj
+    arguments: '-o $(Build.ArtifactStagingDirectory)/Apsoft.Cad.Presentation.Api_$(Build.BuildId)'
+    zipAfterPublish: true
+    
+
+- publish: $(Build.ArtifactStagingDirectory)/Apsoft.Cad.Presentation.Api_$(Build.BuildId)
+  artifact: webapi
+
